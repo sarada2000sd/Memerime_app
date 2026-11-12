@@ -42,7 +42,7 @@
         android:includeFontPadding="false"
         android:maxLines="1"
         android:paddingTop="4dp"
-        android:textColor="#AFAFAF"
+        android:textColor="#FFFFFF"
         android:textSize="10sp" />
 
     <LinearLayout
@@ -85,8 +85,10 @@
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="vertical"
-        android:paddingHorizontal="3dp"
-        android:paddingVertical="3dp">
+        android:paddingLeft="3dp"
+        android:paddingRight="3dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
         <TextView
             android:id="@+id/widget_back"
             android:layout_width="match_parent"

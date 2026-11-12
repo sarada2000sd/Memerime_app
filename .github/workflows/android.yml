@@ -45,12 +45,15 @@ jobs:
           "$SDKMANAGER" --install "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: Run TXT parser tests
-        run: node --test tests/core.test.cjs
+        run: node --test tests/*.test.cjs
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.6.0
+
+      - name: Check Android RemoteViews layouts
+        run: gradle --no-daemon :app:lintDebug
 
       - name: Build debug and optimized release APKs
         run: gradle --no-daemon clean :app:assembleDebug :app:assembleRelease
