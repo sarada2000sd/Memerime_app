@@ -42,7 +42,7 @@ jobs:
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" --install "platforms;android-37" "build-tools;37.0.0"
+          "$SDKMANAGER" --install "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: Run TXT parser tests
         run: node --test tests/core.test.cjs
