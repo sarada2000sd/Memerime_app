@@ -93,3 +93,6 @@ h1 { margin: 0; font-size: 25px; line-height: 1.15; letter-spacing: -.7px; font-
 @media (max-height: 650px) { .app-shell { padding-top: 6px; padding-bottom: 10px; } .section-heading { margin-top: 18px; } .flashcard { height: clamp(290px, 58dvh, 430px); } .study-heading { padding-top: 10px; } .study-footer { padding-top: 8px; } }
 @media (min-width: 600px) { .app-shell { padding-left: 28px; padding-right: 28px; } .card-side { padding-left: 35px; padding-right: 35px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+
+.add-widget-button { width: 100%; margin-top: 9px; min-height: 43px; border-radius: 13px; color: #ddd; }
+.add-widget-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }

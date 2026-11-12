@@ -31,6 +31,10 @@
         <section id="deck-list" class="deck-list" aria-live="polite"></section>
         <div class="library-footer">
             <button class="button button-primary add-deck-button" id="add-deck-button" type="button"><span class="plus-mark">+</span>Add new deck</button>
+            <button class="button button-quiet add-widget-button" id="add-widget-button" type="button">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h14v14H3zM7 7h6M7 10h6M7 13h3"></path></svg>
+                Add home-screen widget
+            </button>
             <p class="footer-note">Saved on this device · Works offline</p>
         </div>
     </main>
@@ -59,6 +63,18 @@
 
 <input id="web-file-picker" class="visually-hidden" type="file" accept=".txt,text/plain">
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<dialog id="widget-dialog" class="modal">
+    <div>
+        <p class="eyebrow">HOME SCREEN</p>
+        <h2>Add a CardLoop widget</h2>
+        <p class="modal-copy">Place your active deck on the Android home screen. Tap the widget itself to move to the next card. It updates only when you tap it or change your deck.</p>
+        <div class="modal-actions">
+            <button class="button button-quiet" id="widget-cancel-button" type="button">Not now</button>
+            <button class="button button-primary" id="widget-add-button" type="button">Add widget</button>
+        </div>
+    </div>
+</dialog>
 
 <dialog id="deck-dialog" class="modal">
     <form id="deck-form" method="dialog">

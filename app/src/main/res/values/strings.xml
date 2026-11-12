@@ -1,1 +1,4 @@
-<resources><string name="app_name">CardLoop</string></resources>
+<resources>
+    <string name="app_name">CardLoop</string>
+    <string name="widget_description">A home-screen flashcard. Tap to move to the next card.</string>
+</resources>

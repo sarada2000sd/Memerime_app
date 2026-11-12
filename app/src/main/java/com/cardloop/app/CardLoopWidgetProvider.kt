@@ -105,9 +105,11 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
             views.setTextViewTextSize(R.id.widget_brand, TypedValue.COMPLEX_UNIT_SP, 17f)
             views.setViewVisibility(R.id.widget_deck, android.view.View.GONE)
             views.setViewVisibility(R.id.widget_count, android.view.View.GONE)
-            views.setViewVisibility(R.id.widget_front, android.view.View.GONE)
+            views.setViewVisibility(R.id.widget_front_container, android.view.View.GONE)
             views.setViewVisibility(R.id.widget_divider, android.view.View.GONE)
-            views.setViewVisibility(R.id.widget_back, android.view.View.GONE)
+            views.setViewVisibility(R.id.widget_back_container, android.view.View.GONE)
+            views.setViewVisibility(R.id.widget_deck, android.view.View.GONE)
+            views.setViewVisibility(R.id.widget_count, android.view.View.GONE)
             manager.updateAppWidget(appWidgetId, views)
             return
         }

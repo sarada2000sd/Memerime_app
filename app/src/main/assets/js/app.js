@@ -17,6 +17,10 @@
         deckTotal: document.getElementById("deck-total"),
         allButton: document.getElementById("all-decks-button"),
         addDeck: document.getElementById("add-deck-button"),
+        addWidget: document.getElementById("add-widget-button"),
+        widgetDialog: document.getElementById("widget-dialog"),
+        widgetAdd: document.getElementById("widget-add-button"),
+        widgetCancel: document.getElementById("widget-cancel-button"),
         deckDialog: document.getElementById("deck-dialog"),
         deckForm: document.getElementById("deck-form"),
         deckName: document.getElementById("deck-name-input"),
@@ -45,37 +49,64 @@
     function makeId() {
         return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
     }
-    function loadState() {
-        var empty = { version: 1, decks: [], allPosition: 0 };
-        try {
-            var raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return empty;
-            var saved = JSON.parse(raw);
-            if (!saved || !Array.isArray(saved.decks)) return empty;
-            saved.decks = saved.decks.filter(function (deck) {
-                return deck && typeof deck.id === "string" && typeof deck.name === "string" && Array.isArray(deck.cards);
-            }).map(function (deck) {
-                deck.cards = deck.cards.filter(function (card) {
-                    return card && typeof card.front === "string" && typeof card.back === "string";
-                });
-                deck.currentIndex = Math.max(0, Number(deck.currentIndex) || 0);
-                deck.currentIndex = deck.cards.length ? deck.currentIndex % deck.cards.length : 0;
-                return deck;
+    function normalizeState(saved) {
+        if (!saved || !Array.isArray(saved.decks)) {
+            return { version: 1, decks: [], allPosition: 0, widgetMode: "none", widgetDeckId: "" };
+        }
+        saved.decks = saved.decks.filter(function (deck) {
+            return deck && typeof deck.id === "string" && typeof deck.name === "string" && Array.isArray(deck.cards);
+        }).map(function (deck) {
+            deck.cards = deck.cards.filter(function (card) {
+                return card && typeof card.front === "string" && typeof card.back === "string";
             });
-            saved.version = 1;
-            saved.allPosition = Math.max(0, Number(saved.allPosition) || 0);
-            return saved;
-        } catch (error) { return empty; }
+            deck.currentIndex = Math.max(0, Number(deck.currentIndex) || 0);
+            deck.currentIndex = deck.cards.length ? deck.currentIndex % deck.cards.length : 0;
+            return deck;
+        });
+        saved.version = 1;
+        saved.allPosition = Math.max(0, Number(saved.allPosition) || 0);
+        saved.widgetMode = saved.widgetMode === "deck" || saved.widgetMode === "all" ? saved.widgetMode : "none";
+        saved.widgetDeckId = typeof saved.widgetDeckId === "string" ? saved.widgetDeckId : "";
+        if (saved.widgetMode === "deck") {
+            var activeDeck = saved.decks.find(function (deck) { return deck.id === saved.widgetDeckId && deck.cards.length; });
+            if (!activeDeck) {
+                saved.widgetMode = "none";
+                saved.widgetDeckId = "";
+            }
+        }
+        if (saved.widgetMode === "all" && !saved.decks.some(function (deck) { return deck.cards.length > 0; })) {
+            saved.widgetMode = "none";
+            saved.widgetDeckId = "";
+        }
+        return saved;
+    }
+    function loadState() {
+        var raw = "";
+        try {
+            if (window.AndroidBridge && typeof window.AndroidBridge.loadState === "function") {
+                raw = window.AndroidBridge.loadState() || "";
+            }
+            if (!raw) raw = localStorage.getItem(STORAGE_KEY) || "";
+            if (!raw) return { version: 1, decks: [], allPosition: 0, widgetMode: "none", widgetDeckId: "" };
+            return normalizeState(JSON.parse(raw));
+        } catch (error) {
+            return { version: 1, decks: [], allPosition: 0, widgetMode: "none", widgetDeckId: "" };
+        }
     }
     function saveState() {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            var serialized = JSON.stringify(state);
+            localStorage.setItem(STORAGE_KEY, serialized);
+            if (window.AndroidBridge && typeof window.AndroidBridge.saveState === "function") {
+                window.AndroidBridge.saveState(serialized);
+            }
             return true;
         } catch (error) {
             showToast("Could not save. Device storage may be full.");
             return false;
         }
     }
+
     function showToast(message) {
         window.clearTimeout(toastTimer);
         el.toast.textContent = message;
@@ -171,6 +202,14 @@
     function deleteDeck() {
         state.decks = state.decks.filter(function (deck) { return deck.id !== deletingDeckId; });
         state.allPosition = 0;
+        if (state.widgetMode === "deck" && state.widgetDeckId === deletingDeckId) {
+            state.widgetMode = "none";
+            state.widgetDeckId = "";
+        }
+        if (state.widgetMode === "all" && !state.decks.some(function (deck) { return deck.cards.length > 0; })) {
+            state.widgetMode = "none";
+            state.widgetDeckId = "";
+        }
         saveState();
         el.deleteDialog.close();
         renderDecks();
@@ -302,6 +341,9 @@
         var deck = findDeck(deckId);
         if (!deck || !deck.cards.length) { showToast("Add a TXT file to this deck first."); return; }
         session = { mode: "deck", deckId: deck.id };
+        state.widgetMode = "deck";
+        state.widgetDeckId = deck.id;
+        saveState();
         showStudy();
     }
     function startAllDecks() {
@@ -309,6 +351,8 @@
         if (!all.length) { showToast("Add cards to a deck first."); return; }
         state.allPosition %= all.length;
         session = { mode: "all" };
+        state.widgetMode = "all";
+        state.widgetDeckId = "";
         saveState();
         showStudy();
     }
@@ -332,9 +376,48 @@
         renderStudy(true);
     }
     function handleBack() {
+        if (el.widgetDialog && el.widgetDialog.open) { el.widgetDialog.close(); return true; }
+        if (el.studyDialog && el.studyDialog.open) { el.studyDialog.close(); return true; }
         if (!el.study.hidden) { showLibrary(); return true; }
         return false;
     }
+
+    function requestHomeWidget() {
+        if (!window.AndroidBridge || typeof window.AndroidBridge.requestAddWidget !== "function") {
+            showToast("Home-screen widgets are available in the Android app.");
+            return;
+        }
+        if (window.AndroidBridge.requestAddWidget()) {
+            el.widgetDialog.close();
+            showToast("Confirm the Add option in your Android launcher.");
+        } else {
+            showToast("Your launcher does not support direct widget pinning.");
+        }
+    }
+    function maybeShowWidgetPrompt() {
+        if (!window.AndroidBridge || typeof window.AndroidBridge.consumeFirstWidgetPrompt !== "function") return;
+        if (window.AndroidBridge.consumeFirstWidgetPrompt()) {
+            window.setTimeout(function () {
+                if (!el.widgetDialog.open) el.widgetDialog.showModal();
+            }, 650);
+        }
+    }
+    function refreshFromNative() {
+        try {
+            if (!window.AndroidBridge || typeof window.AndroidBridge.loadState !== "function") return false;
+            var raw = window.AndroidBridge.loadState();
+            if (!raw) return false;
+            state = normalizeState(JSON.parse(raw));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            if (session && session.mode === "deck" && !findDeck(session.deckId)) session = null;
+            if (!el.study.hidden && session) renderStudy(false);
+            else renderDecks();
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
 
     el.deckList.addEventListener("click", function (event) {
         var button = event.target.closest("button[data-action]");
@@ -349,6 +432,9 @@
     });
     el.addDeck.addEventListener("click", function () { openDeckDialog(null); });
     el.allButton.addEventListener("click", startAllDecks);
+    el.addWidget.addEventListener("click", function () { el.widgetDialog.showModal(); });
+    el.widgetAdd.addEventListener("click", requestHomeWidget);
+    el.widgetCancel.addEventListener("click", function () { el.widgetDialog.close(); });
     el.deckForm.addEventListener("submit", function (event) { event.preventDefault(); saveDeckName(); });
     el.deckCancel.addEventListener("click", function () { el.deckDialog.close(); });
     el.deleteCancel.addEventListener("click", function () { el.deleteDialog.close(); });
@@ -372,6 +458,7 @@
         if (!el.study.hidden) window.requestAnimationFrame(function () { fitText(el.front); fitText(el.back); });
     });
 
-    window.CardLoopApp = { handleBack: handleBack };
+    window.CardLoopApp = { handleBack: handleBack, refreshFromNative: refreshFromNative };
     renderDecks();
+    maybeShowWidgetPrompt();
 }());
