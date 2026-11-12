@@ -18,5 +18,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver
+            android:name=".CardLoopWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.cardloop.app.ACTION_NEXT_CARD" />
+                <action android:name="com.cardloop.app.ACTION_PIN_COMPLETED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cardloop_widget_info" />
+        </receiver>
     </application>
 </manifest>

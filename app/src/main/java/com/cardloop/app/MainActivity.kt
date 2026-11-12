@@ -1,7 +1,10 @@
 package com.cardloop.app
 
 import android.app.Activity
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -16,11 +19,17 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.LinearLayout
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
+    private lateinit var rootLayout: LinearLayout
+    private lateinit var topInset: View
+    private lateinit var bottomInset: View
+    private var pageLoaded = false
+
     private val openTextDocumentRequest = 4107
     private val maxImportBytes = 5 * 1024 * 1024
 
@@ -32,6 +41,9 @@ class MainActivity : Activity() {
             window.isStatusBarContrastEnforced = false
             window.isNavigationBarContrastEnforced = false
         }
+
+        topInset = View(this)
+        bottomInset = View(this)
 
         webView = WebView(this).apply {
             setBackgroundColor(Color.BLACK)
@@ -57,6 +69,11 @@ class MainActivity : Activity() {
             }
             addJavascriptInterface(AndroidBridge(), "AndroidBridge")
             webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    pageLoaded = true
+                    super.onPageFinished(view, url)
+                }
+
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val uri = request?.url ?: return true
                     return !(uri.scheme == "file" && uri.path?.startsWith("/android_asset/") == true)
@@ -65,22 +82,52 @@ class MainActivity : Activity() {
             webChromeClient = WebChromeClient()
         }
 
-        webView.setOnApplyWindowInsetsListener { view, insets ->
+        rootLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.BLACK)
+            addView(topInset, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0))
+            addView(webView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(bottomInset, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0))
+        }
+
+        // Dedicated inset spacers keep the WebView clear of system status/navigation bars.
+        rootLayout.setOnApplyWindowInsetsListener { _, insets ->
+            val top: Int
+            val bottom: Int
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val bars = insets.getInsets(
-                    WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
+                    WindowInsets.Type.statusBars() or
+                        WindowInsets.Type.navigationBars() or
+                        WindowInsets.Type.displayCutout()
                 )
-                view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+                top = bars.top
+                bottom = bars.bottom
             } else {
                 @Suppress("DEPRECATION")
-                view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
-                    insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                run {
+                    top = insets.systemWindowInsetTop
+                    bottom = insets.systemWindowInsetBottom
+                }
             }
+            topInset.layoutParams = topInset.layoutParams.apply { height = top }
+            bottomInset.layoutParams = bottomInset.layoutParams.apply { height = bottom }
+            rootLayout.requestLayout()
             insets
         }
-        setContentView(webView)
-        webView.requestApplyInsets()
+
+        setContentView(rootLayout)
+        rootLayout.requestApplyInsets()
         webView.loadUrl("file:///android_asset/index.html")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::webView.isInitialized && pageLoaded) {
+            webView.evaluateJavascript(
+                "window.CardLoopApp && window.CardLoopApp.refreshFromNative && window.CardLoopApp.refreshFromNative();",
+                null
+            )
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -135,6 +182,25 @@ class MainActivity : Activity() {
         if (::webView.isInitialized) webView.evaluateJavascript(script, null)
     }
 
+    private fun isPinWidgetSupported(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            AppWidgetManager.getInstance(this).isRequestPinAppWidgetSupported
+    }
+
+    private fun requestHomeScreenWidget(): Boolean {
+        if (!isPinWidgetSupported()) return false
+        val manager = AppWidgetManager.getInstance(this)
+        val provider = ComponentName(this, CardLoopWidgetProvider::class.java)
+        val callbackIntent = Intent(this, CardLoopWidgetProvider::class.java).apply {
+            action = CardLoopWidgetProvider.ACTION_PIN_COMPLETED
+        }
+        val callback = PendingIntent.getBroadcast(
+            this, 7401, callbackIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        return manager.requestPinAppWidget(provider, null, callback)
+    }
+
     inner class AndroidBridge {
         @JavascriptInterface
         fun pickTextFile(deckId: String) {
@@ -153,7 +219,39 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
-        fun appVersion(): String = "1.0.0"
+        fun loadState(): String {
+            return getSharedPreferences(CardLoopWidgetProvider.PREFS_NAME, MODE_PRIVATE)
+                .getString(CardLoopWidgetProvider.STATE_KEY, "") ?: ""
+        }
+
+        @JavascriptInterface
+        fun saveState(json: String): Boolean {
+            if (json.length > 8 * 1024 * 1024) return false
+            val saved = getSharedPreferences(CardLoopWidgetProvider.PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putString(CardLoopWidgetProvider.STATE_KEY, json)
+                .commit()
+            if (saved) runOnUiThread { CardLoopWidgetProvider.updateAllWidgets(this@MainActivity) }
+            return saved
+        }
+
+        @JavascriptInterface
+        fun consumeFirstWidgetPrompt(): Boolean {
+            if (!isPinWidgetSupported()) return false
+            val prefs = getSharedPreferences(CardLoopWidgetProvider.PREFS_NAME, MODE_PRIVATE)
+            if (prefs.getBoolean(CardLoopWidgetProvider.PROMPT_SHOWN_KEY, false)) return false
+            prefs.edit().putBoolean(CardLoopWidgetProvider.PROMPT_SHOWN_KEY, true).apply()
+            return true
+        }
+
+        @JavascriptInterface
+        fun requestAddWidget(): Boolean {
+            runOnUiThread { requestHomeScreenWidget() }
+            return isPinWidgetSupported()
+        }
+
+        @JavascriptInterface
+        fun appVersion(): String = "1.1.0"
     }
 
     @Deprecated("Deprecated by Android; retained for broad device compatibility.")
