@@ -34,3 +34,7 @@ Decks and progress stay after normal restarts and app updates that preserve data
 ## Home-screen widget
 
 On the first launch, CardLoop offers the Android launcher pin flow. The same action is available from the app's library screen. After selecting Use now on a deck or All Decks, the home widget displays that session's current card. Tap it to advance. Widget mode and card positions are stored in app-private SharedPreferences and survive normal app restarts and device reboots. The app has no foreground service, periodic widget refresh, alarm or background worker; a one-shot BOOT_COMPLETED receiver redraws existing widgets after a device reboot. the widget updates on user actions and Android widget lifecycle events. It can be resized horizontally and vertically by the launcher.
+
+## Widget load compatibility fix (1.2.0)
+
+The widget divider uses a supported TextView instead of a generic View, because Android RemoteViews only allows an explicit set of view classes. All widget backgrounds are pure black and all widget text/divider elements are white.
