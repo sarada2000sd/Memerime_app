@@ -30,7 +30,7 @@
             android:layout_weight="1"
             android:gravity="end"
             android:includeFontPadding="false"
-            android:textColor="#AFAFAF"
+            android:textColor="#FFFFFF"
             android:textSize="9sp" />
     </LinearLayout>
 
@@ -52,8 +52,10 @@
         android:layout_weight="2"
         android:gravity="center"
         android:orientation="vertical"
-        android:paddingHorizontal="3dp"
-        android:paddingVertical="3dp">
+        android:paddingLeft="3dp"
+        android:paddingRight="3dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
         <TextView
             android:id="@+id/widget_front"
             android:layout_width="match_parent"
@@ -66,12 +68,15 @@
             android:textSize="16sp" />
     </LinearLayout>
 
-    <View
+    <TextView
         android:id="@+id/widget_divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginHorizontal="7dp"
-        android:background="#777777" />
+        android:layout_marginLeft="7dp"
+        android:layout_marginRight="7dp"
+        android:background="#FFFFFF"
+        android:includeFontPadding="false"
+        android:textColor="#FFFFFF" />
 
     <LinearLayout
         android:id="@+id/widget_back_container"
