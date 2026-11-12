@@ -28,7 +28,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Locate and install Android 16 SDK
+      - name: Locate and install Android 17 SDK
         shell: bash
         run: |
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
