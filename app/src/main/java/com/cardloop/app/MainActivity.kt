@@ -135,7 +135,7 @@ class MainActivity : Activity() {
         if (::webView.isInitialized) webView.evaluateJavascript(script, null)
     }
 
-    private inner class AndroidBridge {
+    inner class AndroidBridge {
         @JavascriptInterface
         fun pickTextFile(deckId: String) {
             runOnUiThread {
