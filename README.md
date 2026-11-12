@@ -11,6 +11,8 @@ A small, offline-first flashcard app. The interface is HTML, CSS and JavaScript 
 - Tap anywhere on the two-part card to advance. Front is above a horizontal divider; back is below.
 - Each deck loops and resumes from its own saved position.
 - All Decks mode loops through every card in deck creation order and remembers its own position.
+- Native Android home-screen widget with launcher pin prompt, tap-to-next-card, and resize-aware card layout.
+- The widget shows only the CardLoop name until a deck or All Decks session is selected.
 - Decks and progress are stored locally. No login, tracking, analytics or network access.
 
 ## TXT format
@@ -28,3 +30,7 @@ The GitHub Actions workflow runs on pushes to main and can also be started manua
 The release APK is signed with the standard Android debug key so it can be installed for sideload testing. For Play Store publishing, configure a private signing key in GitHub Actions secrets.
 
 Decks and progress stay after normal restarts and app updates that preserve data. Uninstalling or clearing app data removes them.
+
+## Home-screen widget
+
+On the first launch, CardLoop offers the Android launcher pin flow. The same action is available from the app's library screen. After selecting Use now on a deck or All Decks, the home widget displays that session's current card. Tap it to advance. Widget mode and card positions are stored in app-private SharedPreferences and survive normal app restarts and device reboots. The app has no foreground service, periodic widget refresh, alarm or background worker; the widget updates on user actions and Android widget lifecycle events. It can be resized horizontally and vertically by the launcher.
