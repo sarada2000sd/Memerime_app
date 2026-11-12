@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#050505">
+    <meta name="color-scheme" content="dark">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <title>CardLoop</title>
+    <link rel="stylesheet" href="css/app.css">
+    <script defer src="js/core.js"></script>
+    <script defer src="js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M7 6h14v19H7z"></path><path d="M12 10h14v17H12z"></path><path d="M15 15h8M15 19h8M15 23h5"></path></svg></div>
+            <div><div class="brand-name">CARDLOOP</div><div class="brand-caption">YOUR WORDS. YOUR PACE.</div></div>
+        </div>
+        <button class="button button-light button-small" id="all-decks-button" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"></path></svg>All Decks
+        </button>
+    </header>
+
+    <main id="library-screen" class="screen">
+        <section class="section-heading">
+            <div><p class="eyebrow">YOUR LIBRARY</p><h1>Your decks</h1></div>
+            <span id="deck-total" class="muted-count">0 DECKS</span>
+        </section>
+        <section id="deck-list" class="deck-list" aria-live="polite"></section>
+        <div class="library-footer">
+            <button class="button button-primary add-deck-button" id="add-deck-button" type="button"><span class="plus-mark">+</span>Add new deck</button>
+            <p class="footer-note">Saved on this device · Works offline</p>
+        </div>
+    </main>
+
+    <main id="study-screen" class="screen study-screen" hidden>
+        <div class="study-heading">
+            <button class="icon-button" id="back-to-library" type="button" aria-label="Back to decks"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></button>
+            <div class="study-title-wrap"><p class="eyebrow" id="study-mode-label">STUDYING DECK</p><h1 id="study-deck-title">Deck</h1></div>
+            <span class="study-count" id="study-count">0 / 0</span>
+        </div>
+        <div class="card-stage">
+            <div id="flashcard" class="flashcard" role="button" tabindex="0" aria-label="Tap to show the next card">
+                <section class="card-side card-front"><div class="card-content" id="card-front-content"></div></section>
+                <div class="card-divider" aria-hidden="true"></div>
+                <section class="card-side card-back"><div class="card-content" id="card-back-content"></div></section>
+                <div class="card-corner-mark" aria-hidden="true">↗</div>
+            </div>
+        </div>
+        <div class="study-footer">
+            <div class="progress-track"><div id="study-progress" class="progress-fill"></div></div>
+            <div class="study-hint"><span class="tap-dot"></span><span>Tap anywhere on the card for next</span></div>
+            <button class="button button-quiet" id="exit-study-button" type="button">Back to decks</button>
+        </div>
+    </main>
+</div>
+
+<input id="web-file-picker" class="visually-hidden" type="file" accept=".txt,text/plain">
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<dialog id="deck-dialog" class="modal">
+    <form id="deck-form" method="dialog">
+        <p class="eyebrow" id="deck-dialog-eyebrow">NEW DECK</p><h2 id="deck-dialog-title">Create a deck</h2>
+        <label class="field-label" for="deck-name-input">Deck name</label>
+        <input id="deck-name-input" class="text-input" type="text" maxlength="48" placeholder="e.g. German A1 · Das" autocomplete="off" required>
+        <p id="deck-form-error" class="form-error" aria-live="polite"></p>
+        <div class="modal-actions">
+            <button class="button button-quiet" id="deck-cancel-button" type="button">Cancel</button>
+            <button class="button button-primary" id="deck-save-button" type="submit">Save deck</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="delete-dialog" class="modal">
+    <div>
+        <p class="eyebrow">DELETE DECK</p><h2>Remove this deck?</h2>
+        <p class="modal-copy" id="delete-message">Its cards and saved progress will be removed from this device.</p>
+        <div class="modal-actions">
+            <button class="button button-quiet" id="delete-cancel-button" type="button">Cancel</button>
+            <button class="button button-danger" id="delete-confirm-button" type="button">Delete deck</button>
+        </div>
+    </div>
+</dialog>
+</body>
+</html>
