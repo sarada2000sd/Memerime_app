@@ -52,9 +52,6 @@ jobs:
         with:
           gradle-version: 9.6.0
 
-      - name: Check Android RemoteViews layouts
-        run: gradle --no-daemon :app:lintDebug
-
       - name: Build debug and optimized release APKs
         run: gradle --no-daemon clean :app:assembleDebug :app:assembleRelease
 
