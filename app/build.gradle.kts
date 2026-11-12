@@ -1,14 +1,13 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 android {
     namespace = "com.cardloop.app"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         applicationId = "com.cardloop.app"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
     }
