@@ -127,7 +127,15 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
         v.setTextViewTextSize(R.id.widget_deck, TypedValue.COMPLEX_UNIT_SP, (width * .085f).coerceIn(10f, 15f))
         v.setTextViewTextSize(R.id.widget_front, TypedValue.COMPLEX_UNIT_SP, fontSize(frontText, width, height, frontLines, .39f))
         v.setTextViewTextSize(R.id.widget_back, TypedValue.COMPLEX_UNIT_SP, fontSize(backText, width, height, backLines, .50f))
-        val buttonSize = if (width < 160) 19f else 23f
+        val controlDiameter = (width * 0.16f).coerceIn(25f, 36f)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            v.setViewLayoutWidth(R.id.widget_prev_button, controlDiameter)
+            v.setViewLayoutHeight(R.id.widget_prev_button, controlDiameter)
+            v.setViewLayoutWidth(R.id.widget_next_button, controlDiameter)
+            v.setViewLayoutHeight(R.id.widget_next_button, controlDiameter)
+            v.setViewLayoutHeight(R.id.widget_footer, controlDiameter + 2f)
+        }
+        val buttonSize = (controlDiameter * 0.76f).coerceIn(19f, 28f)
         v.setTextViewTextSize(R.id.widget_prev_button, TypedValue.COMPLEX_UNIT_SP, buttonSize)
         v.setTextViewTextSize(R.id.widget_next_button, TypedValue.COMPLEX_UNIT_SP, buttonSize)
         v.setViewVisibility(R.id.widget_footer, if (visible) View.VISIBLE else View.GONE)
