@@ -129,11 +129,11 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
         v.setTextViewTextSize(R.id.widget_back, TypedValue.COMPLEX_UNIT_SP, fontSize(backText, width, height, backLines, .50f))
         val controlDiameter = (width * 0.16f).coerceIn(25f, 36f)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            v.setViewLayoutWidth(R.id.widget_prev_button, controlDiameter)
-            v.setViewLayoutHeight(R.id.widget_prev_button, controlDiameter)
-            v.setViewLayoutWidth(R.id.widget_next_button, controlDiameter)
-            v.setViewLayoutHeight(R.id.widget_next_button, controlDiameter)
-            v.setViewLayoutHeight(R.id.widget_footer, controlDiameter + 2f)
+            v.setViewLayoutWidth(R.id.widget_prev_button, controlDiameter, TypedValue.COMPLEX_UNIT_DIP)
+            v.setViewLayoutHeight(R.id.widget_prev_button, controlDiameter, TypedValue.COMPLEX_UNIT_DIP)
+            v.setViewLayoutWidth(R.id.widget_next_button, controlDiameter, TypedValue.COMPLEX_UNIT_DIP)
+            v.setViewLayoutHeight(R.id.widget_next_button, controlDiameter, TypedValue.COMPLEX_UNIT_DIP)
+            v.setViewLayoutHeight(R.id.widget_footer, controlDiameter + 2f, TypedValue.COMPLEX_UNIT_DIP)
         }
         val buttonSize = (controlDiameter * 0.76f).coerceIn(19f, 28f)
         v.setTextViewTextSize(R.id.widget_prev_button, TypedValue.COMPLEX_UNIT_SP, buttonSize)
