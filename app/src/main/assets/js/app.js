@@ -3,13 +3,11 @@
     var STORAGE_KEY = "cardloop.data.v1";
     var MAX_DECKS = 200;
     var state = loadState();
-    var session = null;
     var pendingFileDeckId = "";
     var editingDeckId = "";
     var deletingDeckId = "";
     var editingOptionsDeckId = "";
     var toastTimer = 0;
-    var advanceLocked = false;
 
     var el = {
         activeBar: document.getElementById("active-widget-bar"),
@@ -202,7 +200,6 @@
     }
 
     function showLibrary() {
-        session = null;
         el.library.hidden = false;
         el.allButton.hidden = false;
         renderDecks();
@@ -234,7 +231,9 @@
             existing.name = name;
         } else {
             if (state.decks.length >= MAX_DECKS) { el.deckError.textContent = "You have reached the deck limit."; return; }
-            state.decks.push({ id: makeId(), name: name, cards: [], currentIndex: 0, createdAt: Date.now() });
+            state.decks.push({ id: makeId(), name: name, cards: [], currentIndex: 0,
+                customCards: { enabled: false, mode: "all", from: 1, to: 1, selected: [] },
+                createdAt: Date.now() });
         }
         if (saveState()) {
             el.deckDialog.close();
@@ -311,119 +310,6 @@
         importText(content);
     };
 
-    function flattenAllCards() {
-        var result = [];
-        state.decks.forEach(function (deck) {
-            deck.cards.forEach(function (card, index) {
-                result.push({ deckId: deck.id, deckName: deck.name, card: card, cardIndex: index });
-            });
-        });
-        return result;
-    }
-    function currentCard() {
-        if (!session) return null;
-        if (session.mode === "deck") {
-            var deck = findDeck(session.deckId);
-            if (!deck || !deck.cards.length) return null;
-            deck.currentIndex %= deck.cards.length;
-            return { deckId: deck.id, deckName: deck.name, card: deck.cards[deck.currentIndex],
-                cardIndex: deck.currentIndex, deckCount: deck.cards.length,
-                globalIndex: deck.currentIndex, globalCount: deck.cards.length };
-        }
-        var all = flattenAllCards();
-        if (!all.length) return null;
-        state.allPosition %= all.length;
-        var item = all[state.allPosition];
-        var owner = findDeck(item.deckId);
-        return { deckId: item.deckId, deckName: item.deckName, card: item.card,
-            cardIndex: item.cardIndex, deckCount: owner ? owner.cards.length : 0,
-            globalIndex: state.allPosition, globalCount: all.length };
-    }
-    function estimateLines(element) {
-        var text = element.textContent || "";
-        var explicit = element.querySelectorAll("br").length + 1;
-        var availableChars = Math.max(11, Math.floor((window.innerWidth - 92) / 15));
-        return Math.max(1, Math.min(10, Math.max(explicit, Math.ceil(text.length / availableChars))));
-    }
-    function fitText(element) {
-        element.style.fontSize = "";
-        var size = Math.min(39, Math.max(28, window.innerWidth * 0.085));
-        var minimum = 16;
-        element.style.fontSize = size + "px";
-        var parent = element.parentElement;
-        var guard = 0;
-        while (guard < 24 && size > minimum && parent &&
-            (element.scrollHeight > parent.clientHeight - 18 || element.scrollWidth > parent.clientWidth - 18)) {
-            size -= 1;
-            element.style.fontSize = size + "px";
-            guard += 1;
-        }
-    }
-    function renderStudy(animate) {
-        var item = currentCard();
-        if (!item) { showLibrary(); showToast("This deck has no cards."); return; }
-        el.studyMode.textContent = session.mode === "all" ? "ALL DECKS" : "STUDYING DECK";
-        el.studyTitle.textContent = item.deckName;
-        el.studyCount.textContent = session.mode === "all"
-            ? (item.globalIndex + 1) + " / " + item.globalCount
-            : (item.cardIndex + 1) + " / " + item.deckCount;
-        el.front.innerHTML = window.CardLoopCore.sanitizeHtml(item.card.front);
-        el.back.innerHTML = window.CardLoopCore.sanitizeHtml(item.card.back);
-        el.flashcard.style.setProperty("--front-weight", String(estimateLines(el.front)));
-        el.flashcard.style.setProperty("--back-weight", String(estimateLines(el.back)));
-        el.progress.style.width = (((item.globalIndex + 1) / item.globalCount) * 100) + "%";
-        window.requestAnimationFrame(function () { fitText(el.front); fitText(el.back); });
-        if (animate) {
-            el.flashcard.classList.remove("is-changing");
-            void el.flashcard.offsetWidth;
-            el.flashcard.classList.add("is-changing");
-        }
-    }
-    function showStudy() {
-        el.library.hidden = true;
-        el.study.hidden = false;
-        el.allButton.hidden = true;
-        renderStudy(false);
-    }
-    function startDeck(deckId) {
-        var deck = findDeck(deckId);
-        if (!deck || !deck.cards.length) { showToast("Add a TXT file to this deck first."); return; }
-        var indexes = cardIndices(deck);
-        if (!indexes.length) { showToast("No cards selected. Check Customize card."); return; }
-        if (indexes.indexOf(deck.currentIndex) < 0) deck.currentIndex = indexes[0];
-        session = null;
-        state.widgetMode = "deck";
-        state.widgetDeckId = deck.id;
-        if (saveState()) { renderDecks(); renderActiveWidgetBar(); showToast("Widget is now using " + deck.name + "."); }
-    }
-    function startAllDecks() {
-        var all = buildAllCardRefs();
-        if (!all.length) { showToast("No cards are selected. Check your deck options."); return; }
-        state.allPosition %= all.length;
-        session = null;
-        state.widgetMode = "all";
-        state.widgetDeckId = "";
-        if (saveState()) { renderDecks(); renderActiveWidgetBar(); showToast("Widget is now using All Decks."); }
-    }
-    function nextCard() {
-        if (advanceLocked || !session) return;
-        advanceLocked = true;
-        window.setTimeout(function () { advanceLocked = false; }, 180);
-        if (session.mode === "deck") {
-            var deck = findDeck(session.deckId);
-            if (!deck || !deck.cards.length) { showLibrary(); return; }
-            deck.currentIndex = (deck.currentIndex + 1) % deck.cards.length;
-        } else {
-            var all = flattenAllCards();
-            if (!all.length) { showLibrary(); return; }
-            var active = all[state.allPosition % all.length];
-            var owner = findDeck(active.deckId);
-            if (owner && owner.cards.length) owner.currentIndex = (active.cardIndex + 1) % owner.cards.length;
-            state.allPosition = (state.allPosition + 1) % all.length;
-        }
-        saveState();
-        renderStudy(true);
-    }
     function handleBack() {
         if (el.widgetDialog && el.widgetDialog.open) { el.widgetDialog.close(); return true; }
         if (el.deckDialog && el.deckDialog.open) { el.deckDialog.close(); return true; }
