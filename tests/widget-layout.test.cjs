@@ -41,10 +41,13 @@ test("widget is black with white text and white navigation circles", () => {
 test("previous and next controls are initially hidden", () => {
     for (const name of names) {
         const xml = fs.readFileSync(path.join(layoutDir, name), "utf8");
-        ["widget_prev_button", "widget_next_button"].forEach(id => {
-            const block = xml.match(new RegExp('<TextView\\\\s+android:id="@\\\\+id/' + id + '"[\\\\s\\\\S]*?/>'));
-            assert.ok(block, "missing " + id);
-            assert.match(block[0], /android:visibility="gone"/, id + " should start hidden");
-        });
+        for (const id of ["widget_prev_button", "widget_next_button"]) {
+            const idText = 'android:id="@+id/' + id + '"';
+            const start = xml.indexOf(idText);
+            assert.notEqual(start, -1, "missing " + id);
+            const end = xml.indexOf("/>", start);
+            assert.notEqual(end, -1, "unfinished element " + id);
+            assert.ok(xml.slice(start, end).includes('android:visibility="gone"'), id + " should start hidden");
+        }
     }
 });
