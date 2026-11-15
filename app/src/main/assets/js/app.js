@@ -310,6 +310,41 @@
         importText(content);
     };
 
+    function startDeck(deckId) {
+        var deck = findDeck(deckId);
+        if (!deck || !deck.cards.length) {
+            showToast("Add a TXT file to this deck first.");
+            return;
+        }
+        var indexes = cardIndices(deck);
+        if (!indexes.length) {
+            showToast("No cards selected. Check Customize card.");
+            return;
+        }
+        if (indexes.indexOf(deck.currentIndex) < 0) deck.currentIndex = indexes[0];
+        state.widgetMode = "deck";
+        state.widgetDeckId = deck.id;
+        if (saveState()) {
+            renderDecks();
+            showToast("Widget is now using " + deck.name + ".");
+        }
+    }
+
+    function startAllDecks() {
+        var all = buildAllCardRefs();
+        if (!all.length) {
+            showToast("No cards are selected. Check your deck options.");
+            return;
+        }
+        state.allPosition %= all.length;
+        state.widgetMode = "all";
+        state.widgetDeckId = "";
+        if (saveState()) {
+            renderDecks();
+            showToast("Widget is now using All Decks.");
+        }
+    }
+
     function handleBack() {
         if (el.widgetDialog && el.widgetDialog.open) { el.widgetDialog.close(); return true; }
         if (el.deckDialog && el.deckDialog.open) { el.deckDialog.close(); return true; }
