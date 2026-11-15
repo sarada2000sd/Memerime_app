@@ -23,6 +23,11 @@
         </button>
     </header>
 
+    <div id="active-widget-bar" class="active-widget-bar" hidden>
+        <span class="active-widget-kicker">WIDGET ACTIVE</span>
+        <span id="active-widget-label" class="active-widget-label">Deck name</span>
+    </div>
+
     <main id="library-screen" class="screen">
         <section class="section-heading">
             <div><p class="eyebrow">YOUR LIBRARY</p><h1>Your decks</h1></div>
@@ -39,26 +44,7 @@
         </div>
     </main>
 
-    <main id="study-screen" class="screen study-screen" hidden>
-        <div class="study-heading">
-            <button class="icon-button" id="back-to-library" type="button" aria-label="Back to decks"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></button>
-            <div class="study-title-wrap"><p class="eyebrow" id="study-mode-label">STUDYING DECK</p><h1 id="study-deck-title">Deck</h1></div>
-            <span class="study-count" id="study-count">0 / 0</span>
-        </div>
-        <div class="card-stage">
-            <div id="flashcard" class="flashcard" role="button" tabindex="0" aria-label="Tap to show the next card">
-                <section class="card-side card-front"><div class="card-content" id="card-front-content"></div></section>
-                <div class="card-divider" aria-hidden="true"></div>
-                <section class="card-side card-back"><div class="card-content" id="card-back-content"></div></section>
-                <div class="card-corner-mark" aria-hidden="true">↗</div>
-            </div>
-        </div>
-        <div class="study-footer">
-            <div class="progress-track"><div id="study-progress" class="progress-fill"></div></div>
-            <div class="study-hint"><span class="tap-dot"></span><span>Tap anywhere on the card for next</span></div>
-            <button class="button button-quiet" id="exit-study-button" type="button">Back to decks</button>
-        </div>
-    </main>
+
 </div>
 
 <input id="web-file-picker" class="visually-hidden" type="file" accept=".txt,text/plain">
@@ -68,7 +54,7 @@
     <div>
         <p class="eyebrow">HOME SCREEN</p>
         <h2>Add a CardLoop widget</h2>
-        <p class="modal-copy">Place your active deck on the Android home screen. Tap the widget itself to move to the next card. It updates only when you tap it or change your deck.</p>
+        <p class="modal-copy">Place CardLoop on your Android home screen. Use a deck or All Decks to choose what it shows. Tap the widget body to reveal its previous and next buttons.</p>
         <div class="modal-actions">
             <button class="button button-quiet" id="widget-cancel-button" type="button">Not now</button>
             <button class="button button-primary" id="widget-add-button" type="button">Add widget</button>
@@ -99,5 +85,50 @@
         </div>
     </div>
 </dialog>
+
+
+<dialog id="deck-options-dialog" class="modal deck-options-dialog">
+    <div class="deck-options-content">
+        <div class="options-heading">
+            <div><p class="eyebrow">DECK OPTIONS</p><h2>Customize card</h2><p id="options-deck-name" class="options-deck-name"></p></div>
+            <button class="options-close" id="options-cancel-button" type="button" aria-label="Close">×</button>
+        </div>
+        <label class="customize-switch" for="customize-toggle">
+            <span class="switch-copy"><strong>Customize card</strong><small>Choose which cards the widget can show</small></span>
+            <input id="customize-toggle" type="checkbox"><span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <fieldset id="customize-settings" class="customize-settings is-disabled" disabled>
+            <div class="card-table-heading"><span class="eyebrow">CARD INDEX</span><span class="table-hint">Scroll · about 8 cards visible</span></div>
+            <div class="card-table-scroll">
+                <table class="card-index-table">
+                    <thead><tr><th>Index</th><th>Front side</th><th>Back side</th></tr></thead>
+                    <tbody id="card-index-table-body"></tbody>
+                </table>
+            </div>
+            <div class="you-want-heading">You want to</div>
+            <div class="selection-mode-list">
+                <label class="selection-mode"><input type="radio" name="card-selection-mode" value="all"><span class="radio-look"></span><span>All cards</span></label>
+                <label class="selection-mode"><input type="radio" name="card-selection-mode" value="range"><span class="radio-look"></span><span>From card <b>X</b> to card <b>Y</b></span></label>
+                <label class="selection-mode"><input type="radio" name="card-selection-mode" value="selected"><span class="radio-look"></span><span>Specific cards</span></label>
+            </div>
+            <div id="range-fields" class="range-fields" hidden>
+                <label>From <input id="range-from" type="number" min="1" inputmode="numeric" placeholder="1"></label>
+                <span class="range-arrow">→</span>
+                <label>To <input id="range-to" type="number" min="1" inputmode="numeric" placeholder="8"></label>
+            </div>
+            <div class="selection-fields-wrap" hidden>
+                <div id="selected-index-fields" class="selected-index-fields"></div>
+                <button id="add-selected-index" class="add-index-button" type="button">+ Add index</button>
+                <p class="selection-help">Enter numbers from the Index column. Each bracket holds one card number.</p>
+            </div>
+        </fieldset>
+        <p id="options-error" class="form-error options-error" aria-live="polite"></p>
+        <div class="modal-actions options-actions">
+            <button class="button button-quiet" id="options-cancel-bottom" type="button">Cancel</button>
+            <button class="button button-primary" id="options-save-button" type="button">Save options</button>
+        </div>
+    </div>
+</dialog>
+
 </body>
 </html>
