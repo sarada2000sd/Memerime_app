@@ -86,7 +86,10 @@
         saved.widgetMode = saved.widgetMode === "deck" || saved.widgetMode === "all" ? saved.widgetMode : "none";
         saved.widgetDeckId = typeof saved.widgetDeckId === "string" ? saved.widgetDeckId : "";
         if (saved.widgetMode === "deck") {
-            var activeDeck = saved.decks.find(function (deck) { return deck.id === saved.widgetDeckId && deck.cards.length; });
+            var activeDeck = saved.decks.find(function (deck) {
+                return deck.id === saved.widgetDeckId &&
+                    window.CardLoopCore.selectCardIndices(deck.cards.length, deck.customCards).length > 0;
+            });
             if (!activeDeck) {
                 saved.widgetMode = "none";
                 saved.widgetDeckId = "";
@@ -118,8 +121,9 @@
             var serialized = JSON.stringify(state);
             localStorage.setItem(STORAGE_KEY, serialized);
             if (window.AndroidBridge && typeof window.AndroidBridge.saveState === "function") {
-                window.AndroidBridge.saveState(serialized);
+                if (window.AndroidBridge.saveState(serialized) === false) return false;
             }
+            renderActiveWidgetBar();
             return true;
         } catch (error) {
             showToast("Could not save. Device storage may be full.");
@@ -422,7 +426,6 @@
     }
     function handleBack() {
         if (el.widgetDialog && el.widgetDialog.open) { el.widgetDialog.close(); return true; }
-        if (el.studyDialog && el.studyDialog.open) { el.studyDialog.close(); return true; }
         if (el.deckDialog && el.deckDialog.open) { el.deckDialog.close(); return true; }
         if (el.deleteDialog && el.deleteDialog.open) { el.deleteDialog.close(); return true; }
         return false;
@@ -591,8 +594,7 @@
             if (!raw) return false;
             state = normalizeState(JSON.parse(raw));
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            if (session && session.mode === "deck" && !findDeck(session.deckId)) session = null;
-            renderDecks();
+                renderDecks();
             renderActiveWidgetBar();
             return true;
         } catch (error) {
