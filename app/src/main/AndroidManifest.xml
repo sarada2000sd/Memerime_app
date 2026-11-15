@@ -33,7 +33,10 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.cardloop.app.ACTION_WIDGET_TAP" />
                 <action android:name="com.cardloop.app.ACTION_NEXT_CARD" />
+                <action android:name="com.cardloop.app.ACTION_PREVIOUS_CARD" />
+                <action android:name="com.cardloop.app.ACTION_HIDE_CONTROLS" />
                 <action android:name="com.cardloop.app.ACTION_PIN_COMPLETED" />
             </intent-filter>
             <meta-data
