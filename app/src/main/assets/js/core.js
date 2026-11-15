@@ -70,5 +70,32 @@
         clean(parsed.body);
         return parsed.body.innerHTML;
     }
-    return { parseText: parseText, sanitizeHtml: sanitizeHtml };
+    function selectCardIndices(cardCount, config) {
+        var count = Math.max(0, Number(cardCount) || 0);
+        var all = [];
+        for (var i = 0; i < count; i++) all.push(i);
+        if (!config || config.enabled !== true || config.mode === "all") return all;
+        if (config.mode === "range") {
+            var from = Math.max(1, Math.min(count, Math.floor(Number(config.from) || 1)));
+            var to = Math.max(1, Math.min(count, Math.floor(Number(config.to) || count)));
+            if (from > to) return [];
+            var range = [];
+            for (var n = from; n <= to; n++) range.push(n - 1);
+            return range;
+        }
+        if (config.mode === "selected") {
+            var seen = Object.create(null);
+            return (Array.isArray(config.selected) ? config.selected : [])
+                .map(function (value) { return Math.floor(Number(value)); })
+                .filter(function (value) {
+                    if (value < 1 || value > count || seen[value]) return false;
+                    seen[value] = true;
+                    return true;
+                })
+                .sort(function (a, b) { return a - b; })
+                .map(function (value) { return value - 1; });
+        }
+        return all;
+    }
+    return { parseText: parseText, sanitizeHtml: sanitizeHtml, selectCardIndices: selectCardIndices };
 }));
