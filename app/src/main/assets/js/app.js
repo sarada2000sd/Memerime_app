@@ -428,6 +428,142 @@
         return false;
     }
 
+
+    function selectedInputs() {
+        var values = [];
+        el.selectedFields.querySelectorAll("input[data-index-value]").forEach(function (input) {
+            var value = Math.floor(Number(input.value));
+            if (input.value.trim() && Number.isFinite(value) && value > 0) values.push(value);
+        });
+        return Array.from(new Set(values)).sort(function (a, b) { return a - b; });
+    }
+    function selectedMode() {
+        var active = Array.prototype.find.call(el.optionsMode, function (radio) { return radio.checked; });
+        return active ? active.value : "all";
+    }
+    function addIndexInput(value) {
+        var chip = document.createElement("label");
+        chip.className = "index-chip";
+        chip.innerHTML = '<span>[</span><input type="number" inputmode="numeric" min="1" max="9999" data-index-value="true" aria-label="Card index"><span>]</span><button type="button" class="remove-index-button" aria-label="Remove index">×</button>';
+        chip.querySelector("input").value = value === undefined ? "" : String(value);
+        el.selectedFields.appendChild(chip);
+        return chip.querySelector("input");
+    }
+    function renderSelectedInputs(values) {
+        el.selectedFields.innerHTML = "";
+        (values && values.length ? values : [""]).forEach(function (value) { addIndexInput(value); });
+    }
+    function updateOptionsMode() {
+        var enabled = el.optionsToggle.checked;
+        el.optionsFieldset.disabled = !enabled;
+        el.optionsFieldset.classList.toggle("is-disabled", !enabled);
+        var mode = selectedMode();
+        el.optionsRange.hidden = mode !== "range";
+        el.selectedFields.closest(".selection-fields-wrap").hidden = mode !== "selected";
+        var deck = findDeck(editingOptionsDeckId);
+        if (deck) {
+            var draft = {
+                enabled: enabled,
+                mode: mode,
+                from: Number(el.rangeFrom.value) || 1,
+                to: Number(el.rangeTo.value) || deck.cards.length,
+                selected: selectedInputs()
+            };
+            renderOptionsTable(deck, draft);
+        }
+    }
+    function renderOptionsTable(deck, config) {
+        el.optionsTableBody.innerHTML = "";
+        var selected = Object.create(null);
+        if (config.enabled && config.mode === "range") {
+            for (var n = Number(config.from); n <= Number(config.to); n++) selected[n] = true;
+        } else if (config.enabled && config.mode === "selected") {
+            (config.selected || []).forEach(function (n) { selected[n] = true; });
+        }
+        deck.cards.forEach(function (card, index) {
+            var row = document.createElement("tr");
+            if (selected[index + 1]) row.className = "selected-row";
+            var number = document.createElement("td");
+            var front = document.createElement("td");
+            var back = document.createElement("td");
+            number.className = "index-cell";
+            number.textContent = String(index + 1);
+            front.innerHTML = window.CardLoopCore.sanitizeHtml(card.front);
+            back.innerHTML = window.CardLoopCore.sanitizeHtml(card.back);
+            row.appendChild(number);
+            row.appendChild(front);
+            row.appendChild(back);
+            el.optionsTableBody.appendChild(row);
+        });
+        if (!deck.cards.length) el.optionsTableBody.innerHTML = '<tr><td colspan="3" class="table-empty">No cards in this deck yet.</td></tr>';
+    }
+    function openOptionsDialog(deck) {
+        editingOptionsDeckId = deck.id;
+        var config = deck.customCards || { enabled: false, mode: "all", from: 1, to: deck.cards.length || 1, selected: [] };
+        el.optionsDeckName.textContent = deck.name;
+        el.optionsToggle.checked = config.enabled === true;
+        el.rangeFrom.value = String(config.from || 1);
+        el.rangeTo.value = String(config.to || deck.cards.length || 1);
+        el.optionsError.textContent = "";
+        Array.prototype.forEach.call(el.optionsMode, function (radio) {
+            radio.checked = radio.value === (config.mode || "all");
+        });
+        renderSelectedInputs(config.selected || []);
+        updateOptionsMode();
+        el.optionsDialog.showModal();
+    }
+    function saveOptions() {
+        var deck = findDeck(editingOptionsDeckId);
+        if (!deck) return;
+        el.optionsError.textContent = "";
+        var enabled = el.optionsToggle.checked;
+        var mode = selectedMode();
+        var config = {
+            enabled: enabled,
+            mode: mode,
+            from: 1,
+            to: deck.cards.length || 1,
+            selected: []
+        };
+        if (enabled && mode === "range") {
+            var from = Math.floor(Number(el.rangeFrom.value));
+            var to = Math.floor(Number(el.rangeTo.value));
+            if (!Number.isFinite(from) || !Number.isFinite(to) || from < 1 ||
+                to < from || to > deck.cards.length) {
+                el.optionsError.textContent = "Enter a valid range from 1 to " + deck.cards.length + ".";
+                return;
+            }
+            config.from = from;
+            config.to = to;
+        } else if (enabled && mode === "selected") {
+            config.selected = selectedInputs().filter(function (n) { return n <= deck.cards.length; });
+            if (!config.selected.length) {
+                el.optionsError.textContent = "Add at least one valid card index.";
+                return;
+            }
+        }
+        deck.customCards = config;
+        var allowed = cardIndices(deck);
+        if (state.widgetMode === "deck" && state.widgetDeckId === deck.id &&
+            allowed.length && allowed.indexOf(deck.currentIndex) < 0) {
+            deck.currentIndex = allowed[0];
+        }
+        if (state.widgetMode === "all") {
+            var all = buildAllCardRefs();
+            if (!all.length) {
+                state.widgetMode = "none";
+                state.widgetDeckId = "";
+                state.allPosition = 0;
+            } else state.allPosition %= all.length;
+        }
+        if (saveState()) {
+            el.optionsDialog.close();
+            renderDecks();
+            renderActiveWidgetBar();
+            showToast(enabled ? "Card selection saved." : "All cards enabled for this deck.");
+        }
+    }
+
     function requestHomeWidget() {
         if (!window.AndroidBridge || typeof window.AndroidBridge.requestAddWidget !== "function") {
             showToast("Home-screen widgets are available in the Android app.");
@@ -486,6 +622,34 @@
     el.deckCancel.addEventListener("click", function () { el.deckDialog.close(); });
     el.deleteCancel.addEventListener("click", function () { el.deleteDialog.close(); });
     el.deleteConfirm.addEventListener("click", deleteDeck);
+    el.optionsToggle.addEventListener("change", updateOptionsMode);
+    Array.prototype.forEach.call(el.optionsMode, function (radio) {
+        radio.addEventListener("change", updateOptionsMode);
+    });
+    el.rangeFrom.addEventListener("input", updateOptionsMode);
+    el.rangeTo.addEventListener("input", updateOptionsMode);
+    el.addSelectedField.addEventListener("click", function () {
+        var input = addIndexInput("");
+        input.focus();
+    });
+    el.selectedFields.addEventListener("input", function (event) {
+        if (!event.target.matches("input[data-index-value]")) return;
+        var inputs = el.selectedFields.querySelectorAll("input[data-index-value]");
+        if (inputs.length && event.target === inputs[inputs.length - 1] && event.target.value.trim()) {
+            addIndexInput("");
+        }
+        updateOptionsMode();
+    });
+    el.selectedFields.addEventListener("click", function (event) {
+        var remove = event.target.closest(".remove-index-button");
+        if (!remove) return;
+        remove.closest(".index-chip").remove();
+        if (!el.selectedFields.querySelector("input[data-index-value]")) addIndexInput("");
+        updateOptionsMode();
+    });
+    el.optionsSave.addEventListener("click", saveOptions);
+    el.optionsCancel.addEventListener("click", function () { el.optionsDialog.close(); });
+    el.optionsCancelBottom.addEventListener("click", function () { el.optionsDialog.close(); });
     el.filePicker.addEventListener("change", function () {
         var file = el.filePicker.files && el.filePicker.files[0];
         if (!file) { pendingFileDeckId = ""; return; }
