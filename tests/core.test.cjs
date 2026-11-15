@@ -31,3 +31,18 @@ test("skips duplicate cards in a single file", () => {
     const result = core.parseText("Front;Back\nFront;Back\nFront;Other");
     assert.equal(result.cards.length, 2);
 });
+
+
+test("deck selector returns all cards when customization is off", () => {
+    assert.deepEqual(core.selectCardIndices(5, { enabled: false, mode: "selected", selected: [2] }), [0, 1, 2, 3, 4]);
+});
+test("deck selector uses inclusive one-based ranges", () => {
+    assert.deepEqual(core.selectCardIndices(8, { enabled: true, mode: "range", from: 2, to: 5 }), [1, 2, 3, 4]);
+    assert.deepEqual(core.selectCardIndices(5, { enabled: true, mode: "range", from: 5, to: 2 }), []);
+});
+test("deck selector uses unique sorted one-based selected indexes", () => {
+    assert.deepEqual(core.selectCardIndices(7, { enabled: true, mode: "selected", selected: [6, 2, 2, 12, 1] }), [0, 1, 5]);
+});
+test("deck selector All cards mode includes the whole deck", () => {
+    assert.deepEqual(core.selectCardIndices(3, { enabled: true, mode: "all" }), [0, 1, 2]);
+});
