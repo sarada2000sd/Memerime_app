@@ -230,13 +230,20 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
         }
         return null
     }
-    private fun plain(html: String): String = html
-        .replace(Regex("(?is)<(script|style)[^>]*>.*?</\\\\1>"), "")
-        .replace(Regex("(?i)<br\\\\s*/?>"), "\\n")
-        .replace(Regex("(?i)</(p|div|li|tr|h[1-6])\\\\s*>"), "\\n")
-        .replace(Regex("<[^>]+>"), "")
-        .replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<")
-        .replace("&gt;", ">").replace("&quot;", "\\"").trim()
+    private fun plain(html: String): String {
+        var text = html
+            .replace(Regex("(?i)<br\\s*/?>"), "\n")
+            .replace(Regex("(?i)</(p|div|li|tr|h[1-6])\\s*>"), "\n")
+            .replace(Regex("<[^>]+>"), "")
+        text = text.replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+        return text.trim()
+    }
+
     private fun toSpanned(html: String): CharSequence {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             return Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT)
