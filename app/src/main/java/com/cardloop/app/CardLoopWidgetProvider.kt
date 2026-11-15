@@ -238,12 +238,13 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
         .replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<")
         .replace("&gt;", ">").replace("&quot;", "\\"").trim()
     private fun toSpanned(html: String): CharSequence {
-        val safe = html.replace(Regex("(?is)<(script|style|iframe|object)[^>]*>.*?</\\\\1>"), "")
-            .replace(Regex("(?i)<(img|video|audio|svg|form)[^>]*>"), "")
-            .replace(Regex("(?i)\\\\s(on\\\\w+|style|src|href)\\\\s*=\\\\s*(['\\"]).*?\\\\2"), "")
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) Html.fromHtml(safe, Html.FROM_HTML_MODE_COMPACT)
-        else { @Suppress("DEPRECATION") Html.fromHtml(safe) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            return Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT)
+        }
+        @Suppress("DEPRECATION")
+        return Html.fromHtml(html)
     }
+
     private fun lineCount(text: String, width: Int): Int {
         val chars = max(8, (width / ((width * .085f).coerceIn(10f,18f) * .56f)).toInt())
         return text.split('\n').sumOf { max(1, ceil(it.length.toDouble() / chars).toInt()) }.coerceIn(1,16)
