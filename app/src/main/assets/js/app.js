@@ -7,12 +7,14 @@
     var pendingFileDeckId = "";
     var editingDeckId = "";
     var deletingDeckId = "";
+    var editingOptionsDeckId = "";
     var toastTimer = 0;
     var advanceLocked = false;
 
     var el = {
+        activeBar: document.getElementById("active-widget-bar"),
+        activeLabel: document.getElementById("active-widget-label"),
         library: document.getElementById("library-screen"),
-        study: document.getElementById("study-screen"),
         deckList: document.getElementById("deck-list"),
         deckTotal: document.getElementById("deck-total"),
         allButton: document.getElementById("all-decks-button"),
@@ -33,15 +35,21 @@
         deleteMessage: document.getElementById("delete-message"),
         deleteCancel: document.getElementById("delete-cancel-button"),
         deleteConfirm: document.getElementById("delete-confirm-button"),
-        studyTitle: document.getElementById("study-deck-title"),
-        studyMode: document.getElementById("study-mode-label"),
-        studyCount: document.getElementById("study-count"),
-        front: document.getElementById("card-front-content"),
-        back: document.getElementById("card-back-content"),
-        flashcard: document.getElementById("flashcard"),
-        progress: document.getElementById("study-progress"),
-        backButton: document.getElementById("back-to-library"),
-        exitButton: document.getElementById("exit-study-button"),
+        optionsDialog: document.getElementById("deck-options-dialog"),
+        optionsDeckName: document.getElementById("options-deck-name"),
+        optionsToggle: document.getElementById("customize-toggle"),
+        optionsFieldset: document.getElementById("customize-settings"),
+        optionsTableBody: document.getElementById("card-index-table-body"),
+        optionsMode: document.querySelectorAll('input[name="card-selection-mode"]'),
+        optionsRange: document.getElementById("range-fields"),
+        rangeFrom: document.getElementById("range-from"),
+        rangeTo: document.getElementById("range-to"),
+        selectedFields: document.getElementById("selected-index-fields"),
+        addSelectedField: document.getElementById("add-selected-index"),
+        optionsError: document.getElementById("options-error"),
+        optionsSave: document.getElementById("options-save-button"),
+        optionsCancel: document.getElementById("options-cancel-button"),
+        optionsCancelBottom: document.getElementById("options-cancel-bottom"),
         filePicker: document.getElementById("web-file-picker"),
         toast: document.getElementById("toast")
     };
@@ -61,6 +69,16 @@
             });
             deck.currentIndex = Math.max(0, Number(deck.currentIndex) || 0);
             deck.currentIndex = deck.cards.length ? deck.currentIndex % deck.cards.length : 0;
+            var custom = deck.customCards && typeof deck.customCards === "object" ? deck.customCards : {};
+            deck.customCards = {
+                enabled: custom.enabled === true,
+                mode: ["all", "range", "selected"].indexOf(custom.mode) >= 0 ? custom.mode : "all",
+                from: Math.max(1, Math.floor(Number(custom.from) || 1)),
+                to: Math.max(1, Math.floor(Number(custom.to) || deck.cards.length || 1)),
+                selected: Array.isArray(custom.selected) ? custom.selected.map(Number).filter(function (v) {
+                    return Number.isInteger(v) && v >= 1 && v <= deck.cards.length;
+                }) : []
+            };
             return deck;
         });
         saved.version = 1;
@@ -74,7 +92,9 @@
                 saved.widgetDeckId = "";
             }
         }
-        if (saved.widgetMode === "all" && !saved.decks.some(function (deck) { return deck.cards.length > 0; })) {
+        if (saved.widgetMode === "all" && !saved.decks.some(function (deck) {
+            return window.CardLoopCore.selectCardIndices(deck.cards.length, deck.customCards).length > 0;
+        })) {
             saved.widgetMode = "none";
             saved.widgetDeckId = "";
         }
@@ -124,6 +144,28 @@
     function findDeck(id) {
         return state.decks.find(function (deck) { return deck.id === id; }) || null;
     }
+    function cardIndices(deck) {
+        return window.CardLoopCore.selectCardIndices(deck.cards.length, deck.customCards);
+    }
+    function buildAllCardRefs() {
+        var all = [];
+        state.decks.forEach(function (deck) {
+            cardIndices(deck).forEach(function (cardIndex) {
+                all.push({ deckId: deck.id, cardIndex: cardIndex });
+            });
+        });
+        return all;
+    }
+    function renderActiveWidgetBar() {
+        var label = "";
+        if (state.widgetMode === "all") label = "ALL DECKS";
+        else if (state.widgetMode === "deck") {
+            var activeDeck = findDeck(state.widgetDeckId);
+            label = activeDeck ? activeDeck.name : "";
+        }
+        el.activeBar.hidden = !label;
+        if (label) el.activeLabel.textContent = label;
+    }
 
     function renderDecks() {
         var decks = state.decks;
@@ -145,20 +187,22 @@
                 actions += '<button class="button button-quiet" type="button" data-action="import" data-id="' + escapeText(deck.id) + '">Add TXT</button>' +
                     '<button class="button button-primary" type="button" data-action="use" data-id="' + escapeText(deck.id) + '">Use now <span aria-hidden="true">→</span></button>';
             }
+            var customLabel = deck.customCards && deck.customCards.enabled ? '<span class="custom-active-label">CUSTOM</span>' : '';
             card.innerHTML = '<div class="deck-topline"><div class="deck-identity"><div class="deck-icon">' + iconMarkup() +
-                '</div><div><div class="deck-name">' + escapeText(deck.name) + '</div><div class="deck-meta">' +
+                '</div><div class="deck-copy"><div class="deck-name">' + escapeText(deck.name) + '</div><div class="deck-meta">' +
                 count + (count === 1 ? ' CARD' : ' CARDS') + (count ? ' · RESUME ' + (deck.currentIndex + 1) : ' · EMPTY') +
-                '</div></div></div></div><div class="deck-actions">' + actions + '</div>';
+                customLabel + '</div></div></div><button class="deck-more-button" type="button" data-action="customize" data-id="' +
+                escapeText(deck.id) + '" aria-label="Deck options">•••</button></div><div class="deck-actions">' + actions + '</div>';
             el.deckList.appendChild(card);
         });
     }
 
     function showLibrary() {
         session = null;
-        el.study.hidden = true;
         el.library.hidden = false;
         el.allButton.hidden = false;
         renderDecks();
+        renderActiveWidgetBar();
     }
     function openDeckDialog(deck) {
         editingDeckId = deck ? deck.id : "";
@@ -206,7 +250,7 @@
             state.widgetMode = "none";
             state.widgetDeckId = "";
         }
-        if (state.widgetMode === "all" && !state.decks.some(function (deck) { return deck.cards.length > 0; })) {
+        if (state.widgetMode === "all" && !buildAllCardRefs().length) {
             state.widgetMode = "none";
             state.widgetDeckId = "";
         }
@@ -340,21 +384,22 @@
     function startDeck(deckId) {
         var deck = findDeck(deckId);
         if (!deck || !deck.cards.length) { showToast("Add a TXT file to this deck first."); return; }
-        session = { mode: "deck", deckId: deck.id };
+        var indexes = cardIndices(deck);
+        if (!indexes.length) { showToast("No cards selected. Check Customize card."); return; }
+        if (indexes.indexOf(deck.currentIndex) < 0) deck.currentIndex = indexes[0];
+        session = null;
         state.widgetMode = "deck";
         state.widgetDeckId = deck.id;
-        saveState();
-        showStudy();
+        if (saveState()) { renderDecks(); renderActiveWidgetBar(); showToast("Widget is now using " + deck.name + "."); }
     }
     function startAllDecks() {
-        var all = flattenAllCards();
-        if (!all.length) { showToast("Add cards to a deck first."); return; }
+        var all = buildAllCardRefs();
+        if (!all.length) { showToast("No cards are selected. Check your deck options."); return; }
         state.allPosition %= all.length;
-        session = { mode: "all" };
+        session = null;
         state.widgetMode = "all";
         state.widgetDeckId = "";
-        saveState();
-        showStudy();
+        if (saveState()) { renderDecks(); renderActiveWidgetBar(); showToast("Widget is now using All Decks."); }
     }
     function nextCard() {
         if (advanceLocked || !session) return;
@@ -378,7 +423,8 @@
     function handleBack() {
         if (el.widgetDialog && el.widgetDialog.open) { el.widgetDialog.close(); return true; }
         if (el.studyDialog && el.studyDialog.open) { el.studyDialog.close(); return true; }
-        if (!el.study.hidden) { showLibrary(); return true; }
+        if (el.deckDialog && el.deckDialog.open) { el.deckDialog.close(); return true; }
+        if (el.deleteDialog && el.deleteDialog.open) { el.deleteDialog.close(); return true; }
         return false;
     }
 
@@ -410,8 +456,8 @@
             state = normalizeState(JSON.parse(raw));
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             if (session && session.mode === "deck" && !findDeck(session.deckId)) session = null;
-            if (!el.study.hidden && session) renderStudy(false);
-            else renderDecks();
+            renderDecks();
+            renderActiveWidgetBar();
             return true;
         } catch (error) {
             return false;
@@ -429,6 +475,7 @@
         if (action === "import") importFile(deck.id);
         if (action === "rename") openDeckDialog(deck);
         if (action === "delete") openDeleteDialog(deck);
+        if (action === "customize") openOptionsDialog(deck);
     });
     el.addDeck.addEventListener("click", function () { openDeckDialog(null); });
     el.allButton.addEventListener("click", startAllDecks);
@@ -439,12 +486,6 @@
     el.deckCancel.addEventListener("click", function () { el.deckDialog.close(); });
     el.deleteCancel.addEventListener("click", function () { el.deleteDialog.close(); });
     el.deleteConfirm.addEventListener("click", deleteDeck);
-    el.flashcard.addEventListener("click", nextCard);
-    el.flashcard.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); nextCard(); }
-    });
-    el.backButton.addEventListener("click", showLibrary);
-    el.exitButton.addEventListener("click", showLibrary);
     el.filePicker.addEventListener("change", function () {
         var file = el.filePicker.files && el.filePicker.files[0];
         if (!file) { pendingFileDeckId = ""; return; }
@@ -454,11 +495,8 @@
         reader.onerror = function () { pendingFileDeckId = ""; showToast("Could not read that TXT file."); };
         reader.readAsText(file, "UTF-8");
     });
-    window.addEventListener("resize", function () {
-        if (!el.study.hidden) window.requestAnimationFrame(function () { fitText(el.front); fitText(el.back); });
-    });
-
     window.CardLoopApp = { handleBack: handleBack, refreshFromNative: refreshFromNative };
     renderDecks();
+    renderActiveWidgetBar();
     maybeShowWidgetPrompt();
 }());
