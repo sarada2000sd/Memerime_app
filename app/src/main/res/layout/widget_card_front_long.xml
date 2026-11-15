@@ -6,7 +6,6 @@
     android:background="@drawable/widget_background"
     android:orientation="vertical"
     android:padding="9dp">
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -33,7 +32,6 @@
             android:textColor="#FFFFFF"
             android:textSize="9sp" />
     </LinearLayout>
-
     <TextView
         android:id="@+id/widget_deck"
         android:layout_width="match_parent"
@@ -44,7 +42,6 @@
         android:paddingTop="4dp"
         android:textColor="#FFFFFF"
         android:textSize="10sp" />
-
     <LinearLayout
         android:id="@+id/widget_front_container"
         android:layout_width="match_parent"
@@ -67,7 +64,6 @@
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
     </LinearLayout>
-
     <TextView
         android:id="@+id/widget_divider"
         android:layout_width="match_parent"
@@ -77,7 +73,6 @@
         android:background="#FFFFFF"
         android:includeFontPadding="false"
         android:textColor="#FFFFFF" />
-
     <LinearLayout
         android:id="@+id/widget_back_container"
         android:layout_width="match_parent"
@@ -99,5 +94,44 @@
             android:maxLines="10"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/widget_footer"
+        android:layout_width="match_parent"
+        android:layout_height="29dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/widget_prev_button"
+            android:layout_width="27dp"
+            android:layout_height="27dp"
+            android:background="@drawable/widget_control_circle"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="‹"
+            android:textColor="#000000"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:contentDescription="Previous card"
+            android:visibility="gone" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"
+            android:text="" />
+        <TextView
+            android:id="@+id/widget_next_button"
+            android:layout_width="27dp"
+            android:layout_height="27dp"
+            android:background="@drawable/widget_control_circle"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="›"
+            android:textColor="#000000"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:contentDescription="Next card"
+            android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>
