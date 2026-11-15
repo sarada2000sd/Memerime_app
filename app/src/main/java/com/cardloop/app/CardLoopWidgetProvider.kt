@@ -214,10 +214,15 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
         }
     }
     private fun wrap(value: Int, size: Int) = if (size <= 0) 0 else ((value % size) + size) % size
-    private fun readState(context: Context): JSONObject? = try {
-        val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(STATE_KEY, null) ?: return null
-        JSONObject(raw)
-    } catch (_: Exception) { null }
+    private fun readState(context: Context): JSONObject? {
+        return try {
+            val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(STATE_KEY, null) ?: return null
+            JSONObject(raw)
+        } catch (_: Exception) {
+            null
+        }
+    }
     private fun findDeck(decks: JSONArray, id: String): JSONObject? {
         for (i in 0 until decks.length()) {
             val deck = decks.optJSONObject(i) ?: continue
