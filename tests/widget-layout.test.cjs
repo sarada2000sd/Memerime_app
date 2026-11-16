@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const layoutDir = path.join(__dirname, "../app/src/main/res/layout");
 const names = ["widget_card.xml", "widget_card_balanced.xml", "widget_card_front_long.xml"];
-const supportedTags = new Set(["LinearLayout", "TextView"]);
+const supportedTags = new Set(["FrameLayout", "LinearLayout", "TextView"]);
 
 test("all home widget layouts use RemoteViews-supported view classes", () => {
     for (const name of names) {
@@ -35,6 +35,16 @@ test("widget is black with white text and white navigation circles", () => {
         }
         assert.match(xml, /android:background="#FFFFFF"/);
         assert.match(xml, /android:textColor="#000000"/);
+    }
+});
+
+test("navigation buttons are independent overlays without a footer bar", () => {
+    for (const name of names) {
+        const xml = fs.readFileSync(path.join(layoutDir, name), "utf8");
+        assert.match(xml, /<FrameLayout[\\s\\S]*?android:id="@\\+id/widget_root"/);
+        assert.match(xml, /android:layout_gravity="bottom\\|start"/);
+        assert.match(xml, /android:layout_gravity="bottom\\|end"/);
+        assert.doesNotMatch(xml, /widget_footer/);
     }
 });
 
