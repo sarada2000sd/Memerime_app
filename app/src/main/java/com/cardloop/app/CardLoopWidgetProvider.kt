@@ -261,7 +261,7 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
     companion object {
         const val PREFS_NAME = "cardloop_data"
         const val STATE_KEY = "state_json"
-        const val PROMPT_SHOWN_KEY = "widget_prompt_shown"
+        const val PROMPT_SHOWN_KEY = "widget_prompt_shown_after_cards_v2"
         const val ACTION_WIDGET_TAP = "com.cardloop.app.ACTION_WIDGET_TAP"
         const val ACTION_NEXT_CARD = "com.cardloop.app.ACTION_NEXT_CARD"
         const val ACTION_PREVIOUS_CARD = "com.cardloop.app.ACTION_PREVIOUS_CARD"
