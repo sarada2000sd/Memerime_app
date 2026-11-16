@@ -162,3 +162,5 @@ h1 { margin: 0; font-size: 25px; line-height: 1.15; letter-spacing: -.7px; font-
     .deck-options-dialog { max-height: 95dvh; }
     .deck-options-content { max-height: calc(95dvh - 32px); }
 }
+
+.add-widget-button:disabled { opacity: .32; cursor: not-allowed; filter: grayscale(1); }
