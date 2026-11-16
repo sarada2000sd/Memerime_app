@@ -169,8 +169,14 @@
         if (label) el.activeLabel.textContent = label;
     }
 
+    function hasAnyCards() {
+        return state.decks.some(function (deck) { return Array.isArray(deck.cards) && deck.cards.length > 0; });
+    }
     function renderDecks() {
         var decks = state.decks;
+        var widgetReady = hasAnyCards();
+        el.addWidget.disabled = !widgetReady;
+        el.addWidget.setAttribute("aria-disabled", widgetReady ? "false" : "true");
         el.deckTotal.textContent = decks.length + (decks.length === 1 ? " DECK" : " DECKS");
         el.deckList.innerHTML = "";
         if (!decks.length) {
@@ -295,6 +301,7 @@
         if (deck.cards.length) deck.currentIndex %= deck.cards.length;
         if (saveState()) {
             renderDecks();
+            maybeShowWidgetPrompt();
             var message = added + " cards added";
             if (duplicates) message += " · " + duplicates + " duplicates skipped";
             if (parsed.skippedLines.length) message += " · " + parsed.skippedLines.length + " invalid lines skipped";
@@ -489,6 +496,10 @@
     }
 
     function requestHomeWidget() {
+        if (!hasAnyCards()) {
+            showToast("Add at least one card before adding a home-screen widget.");
+            return;
+        }
         if (!window.AndroidBridge || typeof window.AndroidBridge.requestAddWidget !== "function") {
             showToast("Home-screen widgets are available in the Android app.");
             return;
@@ -501,6 +512,7 @@
         }
     }
     function maybeShowWidgetPrompt() {
+        if (!hasAnyCards()) return;
         if (!window.AndroidBridge || typeof window.AndroidBridge.consumeFirstWidgetPrompt !== "function") return;
         if (window.AndroidBridge.consumeFirstWidgetPrompt()) {
             window.setTimeout(function () {
