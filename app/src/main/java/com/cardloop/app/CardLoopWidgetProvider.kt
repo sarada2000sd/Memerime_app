@@ -1,6 +1,5 @@
 package com.cardloop.app
 
-import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -8,7 +7,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.SystemClock
 import android.text.Html
 import android.util.TypedValue
 import android.view.View
@@ -34,30 +32,19 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
                 val mode = readState(context)?.optString("widgetMode", "none") ?: "none"
                 if (mode == "none") {
                     context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-                } else if (id != AppWidgetManager.INVALID_APPWIDGET_ID) revealControls(context, id) else updateAllWidgets(context)
+                } else if (id != AppWidgetManager.INVALID_APPWIDGET_ID) toggleControls(context, id) else updateAllWidgets(context)
             }
-            ACTION_NEXT_CARD -> { advanceSavedCard(context, +1); if (id != -1) revealControls(context, id) else updateAllWidgets(context) }
-            ACTION_PREVIOUS_CARD -> { advanceSavedCard(context, -1); if (id != -1) revealControls(context, id) else updateAllWidgets(context) }
+            ACTION_NEXT_CARD -> { advanceSavedCard(context, +1); updateAllWidgets(context) }
+            ACTION_PREVIOUS_CARD -> { advanceSavedCard(context, -1); updateAllWidgets(context) }
             ACTION_HIDE_CONTROLS, ACTION_PIN_COMPLETED -> updateAllWidgets(context)
         }
     }
 
-    private fun revealControls(context: Context, id: Int) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-            .putLong(controlsUntilKey(id), System.currentTimeMillis() + CONTROLS_VISIBLE_MS).apply()
-        scheduleHide(context, id)
+    private fun toggleControls(context: Context, id: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val key = controlsVisibleKey(id)
+        prefs.edit().putBoolean(key, !prefs.getBoolean(key, false)).apply()
         updateAllWidgets(context)
-    }
-    private fun scheduleHide(context: Context, id: Int) {
-        val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, CardLoopWidgetProvider::class.java).apply {
-            action = ACTION_HIDE_CONTROLS
-            data = android.net.Uri.parse("cardloop://hide/" + id)
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
-        }
-        val pending = PendingIntent.getBroadcast(context, HIDE_REQUEST_BASE + id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        alarm.cancel(pending)
-        alarm.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + CONTROLS_VISIBLE_MS, pending)
     }
 
     private fun advanceSavedCard(context: Context, direction: Int) {
@@ -94,14 +81,14 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
         val state = readState(context)
         val active = currentCard(state, state?.optString("widgetMode", "none") ?: "none")
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val visible = System.currentTimeMillis() < prefs.getLong(controlsUntilKey(id), 0L)
+        val visible = prefs.getBoolean(controlsVisibleKey(id), false)
 
         if (active == null) {
             val v = RemoteViews(context.packageName, R.layout.widget_card)
             configureClicks(context, v, id)
             v.setTextViewText(R.id.widget_brand, "CARDLOOP")
             v.setTextViewTextSize(R.id.widget_brand, TypedValue.COMPLEX_UNIT_SP, 17f)
-            listOf(R.id.widget_deck, R.id.widget_count, R.id.widget_front_container, R.id.widget_divider, R.id.widget_back_container, R.id.widget_footer)
+            listOf(R.id.widget_deck, R.id.widget_count, R.id.widget_front_container, R.id.widget_divider, R.id.widget_back_container, R.id.widget_prev_button, R.id.widget_next_button)
                 .forEach { v.setViewVisibility(it, View.GONE) }
             manager.updateAppWidget(id, v)
             return
@@ -133,12 +120,10 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
             v.setViewLayoutHeight(R.id.widget_prev_button, controlDiameter, TypedValue.COMPLEX_UNIT_DIP)
             v.setViewLayoutWidth(R.id.widget_next_button, controlDiameter, TypedValue.COMPLEX_UNIT_DIP)
             v.setViewLayoutHeight(R.id.widget_next_button, controlDiameter, TypedValue.COMPLEX_UNIT_DIP)
-            v.setViewLayoutHeight(R.id.widget_footer, controlDiameter + 2f, TypedValue.COMPLEX_UNIT_DIP)
         }
         val buttonSize = (controlDiameter * 0.76f).coerceIn(19f, 28f)
         v.setTextViewTextSize(R.id.widget_prev_button, TypedValue.COMPLEX_UNIT_SP, buttonSize)
         v.setTextViewTextSize(R.id.widget_next_button, TypedValue.COMPLEX_UNIT_SP, buttonSize)
-        v.setViewVisibility(R.id.widget_footer, if (visible) View.VISIBLE else View.GONE)
         v.setViewVisibility(R.id.widget_prev_button, if (visible) View.VISIBLE else View.GONE)
         v.setViewVisibility(R.id.widget_next_button, if (visible) View.VISIBLE else View.GONE)
         manager.updateAppWidget(id, v)
@@ -271,7 +256,7 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
         val widthLimit = if (text.isEmpty()) ideal else (w / (text.length.coerceAtMost(90) * .47f / max(1,lines))).coerceIn(10f,ideal)
         return min(ideal, min(widthLimit, h / (max(1,lines) * 1.32f))).coerceIn(9f,23f)
     }
-    private fun controlsUntilKey(id: Int) = "widget_controls_until_" + id
+    private fun controlsVisibleKey(id: Int) = "widget_controls_visible_" + id
 
     companion object {
         const val PREFS_NAME = "cardloop_data"
@@ -282,7 +267,6 @@ class CardLoopWidgetProvider : AppWidgetProvider() {
         const val ACTION_PREVIOUS_CARD = "com.cardloop.app.ACTION_PREVIOUS_CARD"
         const val ACTION_HIDE_CONTROLS = "com.cardloop.app.ACTION_HIDE_CONTROLS"
         const val ACTION_PIN_COMPLETED = "com.cardloop.app.ACTION_PIN_COMPLETED"
-        private const val CONTROLS_VISIBLE_MS = 5_000L
         private const val REQUEST_BASE = 20_000
         private const val HIDE_REQUEST_BASE = 50_000
         fun updateAllWidgets(context: Context) {
