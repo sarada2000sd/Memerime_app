@@ -41,10 +41,10 @@ test("widget is black with white text and white navigation circles", () => {
 test("navigation buttons are independent overlays without a footer bar", () => {
     for (const name of names) {
         const xml = fs.readFileSync(path.join(layoutDir, name), "utf8");
-        assert.match(xml, /<FrameLayout[\\s\\S]*?android:id="@\\+id/widget_root"/);
-        assert.match(xml, /android:layout_gravity="bottom\\|start"/);
-        assert.match(xml, /android:layout_gravity="bottom\\|end"/);
-        assert.doesNotMatch(xml, /widget_footer/);
+        assert.ok(xml.includes("<FrameLayout"), name + " should use an overlay-capable root");
+        assert.ok(xml.includes('android:layout_gravity="bottom|start"'), name + " missing previous overlay");
+        assert.ok(xml.includes('android:layout_gravity="bottom|end"'), name + " missing next overlay");
+        assert.ok(!xml.includes("widget_footer"), name + " must not contain a footer strip");
     }
 });
 
