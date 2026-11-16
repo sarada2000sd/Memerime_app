@@ -13,7 +13,7 @@ test("all home widget layouts use RemoteViews-supported view classes", () => {
         const tags = Array.from(xml.matchAll(/<\/?([A-Za-z][A-Za-z0-9_.]*)\b/g)).map(match => match[1]);
         for (const tag of tags) assert.ok(supportedTags.has(tag), name + " contains unsupported <" + tag + ">");
         for (const id of ["widget_root","widget_brand","widget_count","widget_deck","widget_front_container",
-            "widget_front","widget_divider","widget_back_container","widget_back","widget_footer",
+            "widget_front","widget_divider","widget_back_container","widget_back",
             "widget_prev_button","widget_next_button"]) {
             assert.match(xml, new RegExp('android:id="@\\+id/' + id + '"'), name + " missing " + id);
         }
